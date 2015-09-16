@@ -7,19 +7,115 @@ output:
 
 
 ## Loading and preprocessing the data
+The following code reads in the data into our data frame 'activity'.
+```{r, results='hide'}
+activity <- read.csv("activity.csv")
+```
 
+Here I also created a subset of the data with the NA's removed:
+```{r, results = 'hide'}
+activity_noNA <- activity[!is.na(activity$steps),]
+```
 
 
 ## What is mean total number of steps taken per day?
+The following code creates a table (called 'date_sum') of the sum of the number of steps per day.
+```{r}
+library(plyr)
+date_sum <- ddply(activity_noNA, .(date), summarize, sum_steps=sum(steps))
+date_sum
+```
+This code creates the histogram:
+```{r First Histogram}
+hist(date_sum$sum_steps,breaks=50,freq=TRUE,xlab = "Steps per day", ylab = "Frequency", main = "Histogram of Steps Taken Per Day")
+```
 
+To calculate the mean of the number of steps taken each day:
+```{r}
+ddply(activity_noNA, .(date), summarize, mean_steps=mean(steps))
+
+```
+and the median.
+```{r}
+ddply(activity_noNA, .(date), summarize, median_steps=median(steps))
+```
 
 
 ## What is the average daily activity pattern?
+For this section, I also used the data set 'activity_noNA', i.e. the data set with NA's removed.  The following code creates a plot of the average number of steps taken during each 5 minute time interval (0,5,10,...2355) for all days.
+```{r First Time Plot}
+interval_mn<-ddply(activity_noNA, .(interval), summarize,      mean_steps = mean(steps))
+plot(interval_mn$interval, interval_mn$mean_steps,type="l",  main = "Average Number of Steps per Time Interval", xlab = "Time Interval",  ylab = "Average number of steps")
+```
+
+The time interval with the max average number of steps taken over all the days can be found with this code:
+```{r}
+interval_mn[interval_mn$mean_steps==max(interval_mn$mean_steps),]
+```
+and it is the 5 minutes following 8:35 AM.
 
 
+## Imputting missing values
+The total number of NA's in the data set is 2304, found using the following code:
+```{r}
+sum(is.na(activity$steps))
+```
 
-## Imputing missing values
+I decided to replace the NA's with the average steps over all days for each interval. The following code creates a new data set ('new_activity') and replaces each NA value.
+```{r}
+new_activity <- activity
+for (i in 1:length(new_activity$steps)){
+     if (is.na(new_activity[i,1])){
+          new_activity[i,1] <- interval_mn[interval_mn$interval==new_activity[i,3],2]
+     }
+}
+```
+We can check that it worked:
+```{r}
+head(activity)
+head(new_activity)
+```
 
+Here is the histogram of our data with the NA's replaced:
+```{r Second Histogram}
+new_date_sum <- ddply(new_activity, .(date), summarize, sum_steps=sum(steps))
+hist(new_date_sum$sum_steps,breaks=50,freq=TRUE,xlab = "Steps per day", ylab = "Frequency", main = "Histogram of Steps Taken Per Day (NA's replaced)")
+```
 
+Replacing the NA's only changed the middle 3 ranges of the histogram.
+Here are the new mean data for each day:
+```{r}
+ddply(new_activity, .(date), summarize, mean_steps=mean(steps))
+
+```
+This adds in the dates we lost in removing the NA's from the previous data.
+
+This is the new median data:
+```{r}
+ddply(new_activity, .(date), summarize, median_steps=median(steps))
+```
+Since here we're just adding in data for the missing dates, the median should be the median of the interval means we calculated.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+The following code changes our existing dates to POSIXlt format, finds the weekdays corresponding to the dates, and then creates a new column in 'new_activity' called 'class' with classifications of weekend and weekday.
+```{r}
+#Changing to date format
+dates <- strptime(new_activity$date,format="%Y-%m-%d")
+#Labeling days
+class <- weekdays(dates)
+#Creating new column
+new_activity$class<-class
+#Renaming Weekends and Weekdays
+new_activity[(new_activity$class=="Sunday"|new_activity$class=="Saturday"),4]<-"Weekend"
+new_activity[!(new_activity$class=="Weekend"),4]<-"Weekday"
+#Turning column into factors
+new_activity$class<-factor(new_activity$class)
+```
+
+Here we average over all weekends and weekdays for each interval and the use the lattice system to plot:
+```{r Second Time Plot}
+class_mn<-ddply(new_activity, .(interval,class), summarize, mean_steps = mean(steps))
+library(lattice)
+xyplot(mean_steps ~ interval | class, data=class_mn, type = "l",layout = c(1,2), ylab= "Average Steps Taken", xlab = "Interval")
+```

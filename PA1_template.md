@@ -218,7 +218,7 @@ ddply(activity_noNA, .(date), summarize, median_steps=median(steps))
 For this section, I also used the data set 'activity_noNA', i.e. the data set with NA's removed.  The following code creates a plot of the average number of steps taken during each 5 minute time interval (0,5,10,...2355) for all days.
 
 ```r
-interval_mn<-ddply(activity_noNA, .(interval), summarize,      mean_steps = mean(steps))
+interval_mn<-ddply(activity_noNA, .(interval), summarize, mean_steps = mean(steps))
 plot(interval_mn$interval, interval_mn$mean_steps,type="l",  main = "Average Number of Steps per Time Interval", xlab = "Time Interval",  ylab = "Average number of steps")
 ```
 
@@ -248,7 +248,7 @@ sum(is.na(activity$steps))
 ## [1] 2304
 ```
 
-I decided to replace the NA's with the average steps over all days for each interval. The following code creates a new data set ('new_activity') and replaces each NA value.
+I decided to replace the NA's with the average steps over all days for each interval, i.e. for each interval, I took the average over all days and replaced any NA's with the average corresponding to that interval. The following code creates a new data set ('new\_activity') and replaces each NA value with the average from our 'interval\_mn' data frame.
 
 ```r
 new_activity <- activity
@@ -286,6 +286,20 @@ head(new_activity)
 ## 4 0.1509434 2012-10-01       15
 ## 5 0.0754717 2012-10-01       20
 ## 6 2.0943396 2012-10-01       25
+```
+
+```r
+head(interval_mn)
+```
+
+```
+##   interval mean_steps
+## 1        0  1.7169811
+## 2        5  0.3396226
+## 3       10  0.1320755
+## 4       15  0.1509434
+## 5       20  0.0754717
+## 6       25  2.0943396
 ```
 
 Here is the histogram of our data with the NA's replaced:
